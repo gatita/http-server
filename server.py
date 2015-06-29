@@ -18,7 +18,7 @@ def response_ok():
     body = "Hello World"
     return ('HTTP/1.1 200 OK\r\n'
         'Date: {}\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n'
-        'Connection: close\r\n\r\nHello World'.format(now, len(body)))
+        'Connection: close\r\n\r\n{}'.format(now, len(body), body))
 
 
 def response_error():
@@ -36,8 +36,8 @@ while True:
         msg = ""
         while True:
             msg = msg + conn.recv(16)
-            conn.sendall(response_ok())
             if len(msg) < 16:
+                conn.sendall(response_ok())
                 conn.close()
                 break
         print msg
