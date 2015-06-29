@@ -1,7 +1,7 @@
 import socket
 from email.utils import formatdate
 
-ADDR = ('127.0.0.1', 8000)
+ADDR = ('127.0.0.1', 8001)
 
 server = socket.socket(
     socket.AF_INET,
@@ -36,8 +36,8 @@ while True:
         msg = ""
         while True:
             msg = msg + conn.recv(16)
+            conn.sendall(response_ok())
             if len(msg) < 16:
-                conn.sendall(response_ok())
                 conn.close()
                 break
         print msg
