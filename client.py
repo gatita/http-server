@@ -22,10 +22,3 @@ try:
             break
 except Exception:
     print Exception
-
-"""
-HTTP/1.1 200 OK
-Date: Mon, 29 Jun 2015
-Content-Type: text/plain
-Content-Length:
-"""
