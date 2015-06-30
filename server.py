@@ -13,7 +13,7 @@ def response_ok():
     response.append('Content-Type: text/plain')
     response.append('Content-Length: {}'.format(len(body)))
     response.append('Connection: close')
-    response.append(CRLF)
+    response.append('')
     response.append(body)
     return CRLF.join(response)
 
@@ -28,7 +28,8 @@ def response_error():
     response.append('Content-Type: text/html')
     response.append('Content-Length: {}'.format(len(body)))
     response.append('Connection: close')
-    response.append(CRLF)
+    response.append('')
+    response.append(body)
     return CRLF.join(response)
 
 if __name__ == '__main__':
@@ -39,6 +40,8 @@ if __name__ == '__main__':
         socket.SOCK_STREAM,
         socket.IPPROTO_IP
     )
+
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     server.bind(ADDR)
     server.listen(1)
