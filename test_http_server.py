@@ -39,7 +39,7 @@ def test_response_error():
     body = ("<html><body>\nThe server encountered an unexpected internal "
     "error.</body></html>")
     assert response_error() == ('HTTP 1.1 500 Internal Server Error'
-        '\r\nDate:{}\r\nContent-Type: text/html\r\nContent-Length: {}\r\n'
+        '\r\nDate: {}\r\nContent-Type: text/html\r\nContent-Length: {}\r\n'
         'Connection: close\r\n\r\n{}'.format(now, len(body), body)
     )
 
