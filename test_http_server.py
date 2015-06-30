@@ -44,18 +44,15 @@ def test_response_error():
     )
 
 
-def test_http_response(connection):
+def test_http_response(connection, okresponse):
     msg = "GET 127.0.0.1"
-    try:
-        connection.sendall(msg)
-        message_in = ''
-        while True:
-            part = connection.recv(16)
-            message_in += part
-            connection.shutdown(socket.SHUT_WR)
-            if len(part) < 16:
-                break
-        connection.close()
-        assert message_in == okresponse
-    except Exception:
-        print Exception
+    connection.sendall(msg)
+    connection.shutdown(socket.SHUT_WR)
+    message_in = ''
+    while True:
+        part = connection.recv(16)
+        message_in += part
+        if len(part) < 16:
+            break
+    connection.close()
+    assert message_in == okresponse
