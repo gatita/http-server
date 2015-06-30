@@ -1,17 +1,6 @@
 import socket
 from email.utils import formatdate
 
-ADDR = ('127.0.0.1', 8001)
-
-server = socket.socket(
-    socket.AF_INET,
-    socket.SOCK_STREAM,
-    socket.IPPROTO_IP
-)
-
-server.bind(ADDR)
-server.listen(1)
-
 
 def response_ok():
     now = formatdate(usegmt=True)
@@ -30,6 +19,16 @@ def response_error():
         'Connection: close\r\n\r\n{}'.format(now, len(body), body))
 
 if __name__ == '__main__':
+    ADDR = ('127.0.0.1', 8001)
+
+    server = socket.socket(
+        socket.AF_INET,
+        socket.SOCK_STREAM,
+        socket.IPPROTO_IP
+    )
+
+    server.bind(ADDR)
+    server.listen(1)
     while True:
         try:
             conn, addr = server.accept()
