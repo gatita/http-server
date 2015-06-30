@@ -30,9 +30,12 @@ def respond():
             message_in += msg
             if len(msg) < 16:
                 break
-        conn.sendall(response_ok())
+        try:
+            parse_request(message_in)
+            conn.sendall(response_ok())
+        except (NotImplementedError, ValueError, AttributeError) as e:
+            conn.sendall(response_error(e.message))
         conn.close()
-        print message_in
     except KeyboardInterrupt:
         break
 
@@ -67,7 +70,20 @@ def response_error():
 
 
 def parse_request(request):
-    pass
+    request = request.split(CRLF)
+    host = False
+    if 'GET' not in request[0]:
+        raise NotImplementedError('405')
+    elif 'HTTP/1.1' not in request[0]:
+        raise ValueError('505')
+    for line in request[1:]:
+        if 'Host:' in line:
+            host = True
+    if not host:
+        raise AttributeError('400')
+    request_line = request.split()
+    return request_line[1]
+
 
 if __name__ == '__main__':
     respond()
