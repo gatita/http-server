@@ -1,14 +1,25 @@
 # -*- coding:UTF-8 -*-
 # from __future__ import unicode_literals
-from server import response_error, response_ok
+from server import response_error, response_ok, respond
 from email.utils import formatdate
+import time
 
 import pytest
 import socket
 
 
+@pytest.yield_fixture
+def server_process(scope='session'):
+    from multiprocessing import Process
+    process = Process(target=respond)
+    process.daemon = True
+    process.start()
+    time.sleep(.01)
+    yield process
+
+
 @pytest.fixture
-def connection():
+def connection(server_process):
     addr = ('127.0.0.1', 8001)
 
     client = socket.socket(
@@ -26,24 +37,33 @@ def okresponse():
     now = formatdate(usegmt=True)
     body = "Thank you for the appropriate request."
     return ('HTTP/1.1 200 OK\r\n'
-        'Date: {}\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n'
-        'Connection: close\r\n\r\n{}'.format(now, len(body), body))
+            'Date: {}\r\n'
+            'Content-Type: text/plain\r\n'
+            'Content-Length: {}\r\n'
+            'Connection: close\r\n\r\n{}'.format(now, len(body), body))
+
+
+@pytest.fixture
+def errorresponse():
+    now = formatdate(usegmt=True)
+    body = 'Method Not Allowed'
+    return ('HTTP 1.1 405 Method Not Allowed\r\n'
+            'Date: {}\r\n'
+            'Content-Type: text/plain\r\n'
+            'Content-Length: {}\r\n'
+            'Connection: close\r\n\r\n{}'.format(now, len(body), body)
+    )
 
 
 def test_response_ok(okresponse):
     assert response_ok() == okresponse
 
 
-def test_response_error():
-    now = formatdate(usegmt=True)
-    body = 'Method Not Allowed'
-    assert response_error('405') == ('HTTP 1.1 405 Method Not Allowed'
-        '\r\nDate: {}\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n'
-        'Connection: close\r\n\r\n{}'.format(now, len(body), body)
-    )
+def test_response_error(errorresponse):
+    assert response_error('405') == errorresponse
 
 
-def test_http_response(connection, okresponse):
+def test_http_response(server_process, connection, okresponse):
     msg = "GET path/to/stuff HTTP/1.1\r\nHost: www.codefellows.org\r\n\r\n"
     connection.sendall(msg)
     connection.shutdown(socket.SHUT_WR)
