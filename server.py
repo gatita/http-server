@@ -85,7 +85,7 @@ def parse_request(request):
             host = True
     if not host:
         raise AttributeError('400')
-    request_line = request.split()
+    request_line = request[0].split()
     return request_line[1]
 
 

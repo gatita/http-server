@@ -24,7 +24,7 @@ def connection():
 @pytest.fixture
 def okresponse():
     now = formatdate(usegmt=True)
-    body = "Hello World, I need to travel."
+    body = "Thank you for the appropriate request."
     return ('HTTP/1.1 200 OK\r\n'
         'Date: {}\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n'
         'Connection: close\r\n\r\n{}'.format(now, len(body), body))
@@ -36,16 +36,15 @@ def test_response_ok(okresponse):
 
 def test_response_error():
     now = formatdate(usegmt=True)
-    body = ("<html><body>\nThe server encountered an unexpected internal "
-    "error.</body></html>")
-    assert response_error() == ('HTTP 1.1 500 Internal Server Error'
-        '\r\nDate: {}\r\nContent-Type: text/html\r\nContent-Length: {}\r\n'
+    body = 'Method Not Allowed'
+    assert response_error('405') == ('HTTP 1.1 405 Method Not Allowed'
+        '\r\nDate: {}\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n'
         'Connection: close\r\n\r\n{}'.format(now, len(body), body)
     )
 
 
 def test_http_response(connection, okresponse):
-    msg = "GET 127.0.0.1"
+    msg = "GET path/to/stuff HTTP/1.1\r\nHost: www.codefellows.org\r\n\r\n"
     connection.sendall(msg)
     connection.shutdown(socket.SHUT_WR)
     message_in = ''
