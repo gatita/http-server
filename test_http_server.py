@@ -75,3 +75,17 @@ def test_http_response(server_process, connection, okresponse):
             break
     connection.close()
     assert message_in == okresponse
+
+
+def test_error_response(server_process, connection, errorresponse):
+    msg = "POST path/to/stuff HTTP/1.1\r\nHost: www.codefellows.org\r\n\r\n"
+    connection.sendall(msg)
+    connection.shutdown(socket.SHUT_WR)
+    message_in = ''
+    while True:
+        part = connection.recv(16)
+        message_in += part
+        if len(part) < 16:
+            break
+    connection.close()
+    assert message_in == errorresponse
