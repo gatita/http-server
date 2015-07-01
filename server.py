@@ -22,28 +22,29 @@ def create_server():
 
 def respond():
     server = create_server()
-    try:
-        conn, addr = server.accept()
-        message_in = ""
-        while True:
-            msg = conn.recv(16)
-            message_in += msg
-            if len(msg) < 16:
-                break
+    while True:
         try:
-            parse_request(message_in)
-            conn.sendall(response_ok())
-        except (NotImplementedError, ValueError, AttributeError) as e:
-            conn.sendall(response_error(e.message))
-        conn.close()
-    except KeyboardInterrupt:
-        break
+            conn, addr = server.accept()
+            message_in = ""
+            while True:
+                msg = conn.recv(16)
+                message_in += msg
+                if len(msg) < 16:
+                    break
+            try:
+                parse_request(message_in)
+                conn.sendall(response_ok())
+            except (NotImplementedError, ValueError, AttributeError) as e:
+                conn.sendall(response_error(e.message))
+            conn.close()
+        except KeyboardInterrupt:
+            break
 
 
 def response_ok():
     response = []
     now = formatdate(usegmt=True)
-    body = "Hello World, I need to travel."
+    body = "Thank you for the appropriate request."
     response.append('HTTP/1.1 200 OK')
     response.append('Date: {}'.format(now))
     response.append('Content-Type: text/plain')
@@ -54,14 +55,17 @@ def response_ok():
     return CRLF.join(response)
 
 
-def response_error():
+def response_error(message):
+    codes = {'405': 'Method Not Allowed',
+             '505': 'HTTP Version Not Supported',
+             '400': 'Bad Request'
+             }
     response = []
     now = formatdate(usegmt=True)
-    body = ('<html><body>\nThe server encountered an unexpected internal '
-            'error.</body></html>')
-    response.append('HTTP 1.1 500 Internal Server Error')
+    body = (codes[message])
+    response.append('HTTP 1.1 {} {}'.format(message, codes[message]))
     response.append('Date: {}'.format(now))
-    response.append('Content-Type: text/html')
+    response.append('Content-Type: text/plain')
     response.append('Content-Length: {}'.format(len(body)))
     response.append('Connection: close')
     response.append('')
