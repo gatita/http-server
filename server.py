@@ -1,7 +1,11 @@
 import socket
 from email.utils import formatdate
+import os
 
 CRLF = '\r\n'
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.join(HERE, 'webroot')
+
 
 
 def create_server():
