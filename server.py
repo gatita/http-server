@@ -29,6 +29,7 @@ def respond():
         try:
             conn, addr = server.accept()
             message_in = ""
+            message_out = ""
             while True:
                 msg = conn.recv(1024)
                 message_in += msg
@@ -37,14 +38,15 @@ def respond():
             try:
                 uri = parse_request(message_in)
             except (NotImplementedError, ValueError, AttributeError) as e:
-                conn.sendall(response_error(e.message))
+                message_out = response_error(e.message)
             else:
                 # send parsed request to resolve uri
                 try:
                     body, resource_type = resolve_uri(uri)
                 except LookupError as e:
-                    conn.sendall(response_error(e.message))
-                conn.sendall(response_ok(body, resource_type))
+                    message_out = response_error(e.message)
+                message_out = response_ok(body, resource_type)
+            conn.sendall(message_out)
             conn.close()
         except KeyboardInterrupt:
             break
