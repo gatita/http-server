@@ -30,9 +30,9 @@ def respond():
             conn, addr = server.accept()
             message_in = ""
             while True:
-                msg = conn.recv(16)
+                msg = conn.recv(1024)
                 message_in += msg
-                if len(msg) < 16:
+                if len(msg) < 1024:
                     break
             try:
                 uri = parse_request(message_in)
