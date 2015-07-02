@@ -33,9 +33,10 @@ def respond():
                     break
             try:
                 parse_request(message_in)
-                conn.sendall(response_ok())
             except (NotImplementedError, ValueError, AttributeError) as e:
                 conn.sendall(response_error(e.message))
+            else:
+                conn.sendall(response_ok())
             conn.close()
         except KeyboardInterrupt:
             break
@@ -74,18 +75,19 @@ def response_error(message):
 
 
 def parse_request(request):
-    request = request.split(CRLF)
+    header, body = request.split(CRLF*2, 1)
+    header_lines = header.split(CRLF)
     host = False
-    if 'GET' not in request[0]:
+    if 'GET' not in header_lines[0]:
         raise NotImplementedError('405')
-    elif 'HTTP/1.1' not in request[0]:
+    elif 'HTTP/1.1' not in header_lines[0]:
         raise ValueError('505')
-    for line in request[1:]:
+    for line in header_lines[1:]:
         if 'Host:' in line:
             host = True
     if not host:
         raise AttributeError('400')
-    request_line = request[0].split()
+    request_line = header_lines[0].split()
     return request_line[1]
 
 
