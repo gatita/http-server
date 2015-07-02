@@ -40,20 +40,22 @@ def respond():
                 conn.sendall(response_error(e.message))
             else:
                 # send parsed request to resolve uri
-                resolve_uri(uri)
-                conn.sendall(response_ok())
+                try:
+                    body, resource_type = resolve_uri(uri)
+                except LookupError as e:
+                    conn.sendall(response_error(e.message))
+                conn.sendall(response_ok(body, resource_type))
             conn.close()
         except KeyboardInterrupt:
             break
 
 
-def response_ok():
+def response_ok(body, resource_type):
     response = []
     now = formatdate(usegmt=True)
-    body = "Thank you for the appropriate request."
     response.append('HTTP/1.1 200 OK')
     response.append('Date: {}'.format(now))
-    response.append('Content-Type: text/plain')
+    response.append('Content-Type: {}'.format(resource_type))
     response.append('Content-Length: {}'.format(len(body)))
     response.append('Connection: close')
     response.append('')
@@ -64,7 +66,8 @@ def response_ok():
 def response_error(message):
     codes = {'405': 'Method Not Allowed',
              '505': 'HTTP Version Not Supported',
-             '400': 'Bad Request'
+             '400': 'Bad Request',
+             '404': 'Not Found'
              }
     response = []
     now = formatdate(usegmt=True)
