@@ -1,11 +1,10 @@
 import socket
 from email.utils import formatdate
 import os
+import mimetypes
 
 CRLF = '\r\n'
-HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.join(HERE, 'webroot')
-
+ROOT = os.path.join(os.getcwd(), 'webroot')
 
 
 def create_server():
@@ -36,10 +35,12 @@ def respond():
                 if len(msg) < 16:
                     break
             try:
-                parse_request(message_in)
+                uri = parse_request(message_in)
             except (NotImplementedError, ValueError, AttributeError) as e:
                 conn.sendall(response_error(e.message))
             else:
+                # send parsed request to resolve uri
+                resolve_uri(uri)
                 conn.sendall(response_ok())
             conn.close()
         except KeyboardInterrupt:
@@ -93,6 +94,24 @@ def parse_request(request):
         raise AttributeError('400')
     request_line = header_lines[0].split()
     return request_line[1]
+
+
+def resolve_uri(uri):
+    body = ''
+    resource_type = ''
+    if os.path.isdir(ROOT + uri):
+        body = '<!DOCTYPE html><html><body><ul>'
+        for file_ in os.listdir(ROOT + uri):
+            body += '<li>' + file_ + '</li>'
+        body += '</ul></body></html>'
+        resource_type = 'text/html'
+    elif os.path.isfile(ROOT + uri):
+        with open((ROOT + uri), 'rb') as file_:
+            body = file_.read()
+        resource_type, encoding = mimetypes.guess_type(uri)
+    else:
+        raise LookupError('404')
+    return (body, resource_type)
 
 
 if __name__ == '__main__':
