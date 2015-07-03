@@ -1,6 +1,6 @@
 # -*- coding:UTF-8 -*-
 # from __future__ import unicode_literals
-from server import response_error, response_ok, respond
+from server import response_error, response_ok, respond, parse_request, resolve_uri
 import time
 
 import pytest
@@ -61,6 +61,43 @@ def test_response_error():
 def test_response_error_unknown():
     with pytest.raises(KeyError):
         response_error('700')
+
+
+def test_parse_request():
+    msg = "GET /sample.txt HTTP/1.1\r\nHost: www.codefellows.org\r\n\r\nThis is a sample body."
+    uri = parse_request(msg)
+    assert uri == '/sample.txt'
+
+
+def test_parse_request_post():
+    msg = "POST /sample.txt HTTP/1.1\r\nHost: www.codefellows.org\r\n\r\nThis is a sample body."
+    with pytest.raises(NotImplementedError):
+        parse_request(msg)
+
+
+def test_parse_request_version():
+    msg = "GET /sample.txt HTTP/1.0\r\nHost: www.codefellows.org\r\n\r\nThis is a sample body."
+    with pytest.raises(ValueError):
+        parse_request(msg)
+
+
+def test_resolve_uri():
+    body, resource_type = resolve_uri('/')
+    assert resource_type == 'text/html'
+    assert '<li>sample.txt</li>' in body
+    lines = body.split()
+    assert lines[0] == '<!DOCTYPE'
+
+
+def test_resolve_uri_file():
+    body, resource_type = resolve_uri('/sample.txt')
+    assert resource_type == 'text/plain'
+    assert 'This is a very simple text file.' in body
+
+
+def test_resolve_uri_not_found():
+    with pytest.raises(LookupError):
+        resolve_uri('/foo/bar.txt')
 
 
 def get_response(server_process, connection, msg):
