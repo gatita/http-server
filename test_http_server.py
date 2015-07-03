@@ -1,7 +1,6 @@
 # -*- coding:UTF-8 -*-
 # from __future__ import unicode_literals
 from server import response_error, response_ok, respond
-from email.utils import formatdate
 import time
 
 import pytest
@@ -32,55 +31,39 @@ def connection(server_process):
     return client
 
 
-# @pytest.fixture
-# def request_builder(body, ctype, )
+def process_response(response):
+    headers, body = response.split('\r\n\r\n')
+    lines = headers.split('\r\n')
+    return lines, body
 
 
-@pytest.fixture
-def okresponse():
-    now = formatdate(usegmt=True)
-    body = "Thank you for the appropriate request."
-    return ('HTTP/1.1 200 OK\r\n'
-            'Date: {}\r\n'
-            'Content-Type: text/plain\r\n'
-            'Content-Length: {}\r\n'
-            'Connection: close\r\n\r\n{}'.format(now, len(body), body))
-
-
-@pytest.fixture
-def errorresponse():
-    now = formatdate(usegmt=True)
-    body = 'Method Not Allowed'
-    return ('HTTP 1.1 405 Method Not Allowed\r\n'
-            'Date: {}\r\n'
-            'Content-Type: text/plain\r\n'
-            'Content-Length: {}\r\n'
-            'Connection: close\r\n\r\n{}'.format(now, len(body), body)
-    )
-
-
-def test_response_ok(okresponse):
+def test_response_ok():
     body = 'this is a response'
     ctype = 'text/plain'
     response = response_ok(body, ctype)
-    headers, rbody = response.split('\r\n\r\n')
+    headers, rbody = process_response(response)
     assert rbody == body
-    lines = headers.split('\r\n')
-    assert lines[0] == 'HTTP/1.1 200 OK'
+    assert headers[0] == 'HTTP/1.1 200 OK'
     typefound = False
-    for line in lines:
-        if 'Content-Type: text/plain' in line:
+    for header in headers:
+        if 'Content-Type: text/plain' in header:
             typefound = True
             break
     assert typefound
 
 
-def test_response_error(errorresponse):
-    assert response_error('405') == errorresponse
+def test_response_error():
+    response = response_error('405')
+    headers, body = process_response(response)
+    assert headers[0] == 'HTTP/1.1 405 Method Not Allowed'
 
 
-def test_http_response(server_process, connection, okresponse):
-    msg = "GET path/to/stuff HTTP/1.1\r\nHost: www.codefellows.org\r\n\r\n"
+def test_response_error_unknown():
+    with pytest.raises(KeyError):
+        response_error('700')
+
+
+def get_response(server_process, connection, msg):
     connection.sendall(msg)
     connection.shutdown(socket.SHUT_WR)
     message_in = ''
@@ -90,18 +73,48 @@ def test_http_response(server_process, connection, okresponse):
         if len(part) < 16:
             break
     connection.close()
-    assert message_in == okresponse
+    headers, body = process_response(message_in)
+    return headers, body
 
 
-def test_error_response(server_process, connection, errorresponse):
+def test_http_get_dir(server_process, connection):
+    msg = "GET / HTTP/1.1\r\nHost: www.codefellows.org\r\n\r\n"
+    headers, body = get_response(server_process, connection, msg)
+    assert headers[0] == 'HTTP/1.1 200 OK'
+    assert '<ul>' in body
+
+
+def test_get_file(server_process, connection):
+    msg = 'GET /sample.txt HTTP/1.1\r\nHost: localhost\r\n\r\n'
+    headers, body = get_response(server_process, connection, msg)
+    assert headers[0] == 'HTTP/1.1 200 OK'
+    ctype = False
+    for header in headers:
+        if 'Content-Type: text/plain' in header:
+            ctype = True
+    assert ctype
+    assert 'This is a very simple text file.' in body
+
+
+def test_method_error(server_process, connection):
     msg = "POST path/to/stuff HTTP/1.1\r\nHost: www.codefellows.org\r\n\r\n"
-    connection.sendall(msg)
-    connection.shutdown(socket.SHUT_WR)
-    message_in = ''
-    while True:
-        part = connection.recv(16)
-        message_in += part
-        if len(part) < 16:
-            break
-    connection.close()
-    assert message_in == errorresponse
+    headers, body = get_response(server_process, connection, msg)
+    assert headers[0] == 'HTTP/1.1 405 Method Not Allowed'
+
+
+def test_not_found_error(server_process, connection):
+    msg = 'GET /static/style.css HTTP/1.1\r\nHost: localhost\r\n\r\n'
+    headers, body = get_response(server_process, connection, msg)
+    assert headers[0] == 'HTTP/1.1 404 Not Found'
+
+
+def test_no_host_error(server_process, connection):
+    msg = 'GET / HTTP/1.1 \r\n\r\n'
+    headers, body = get_response(server_process, connection, msg)
+    assert headers[0] == 'HTTP/1.1 400 Bad Request'
+
+
+def test_uplevel_error(server_process, connection):
+    msg = 'GET /../../bin/stuff HTTP/1.1\r\nHost: localhost\r\n\r\n'
+    headers, body = get_response(server_process, connection, msg)
+    assert headers[0] == 'HTTP/1.1 403 Forbidden'

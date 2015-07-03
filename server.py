@@ -78,7 +78,7 @@ def response_error(message):
     response = []
     now = formatdate(usegmt=True)
     body = (codes[message])
-    response.append('HTTP 1.1 {} {}'.format(message, codes[message]))
+    response.append('HTTP/1.1 {} {}'.format(message, codes[message]))
     response.append('Date: {}'.format(now))
     response.append('Content-Type: text/plain')
     response.append('Content-Length: {}'.format(len(body)))
