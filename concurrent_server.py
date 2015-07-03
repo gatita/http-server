@@ -1,9 +1,9 @@
 from server import parse_request, response_error, response_ok, resolve_uri
-from gevent.server import StreamServer
-from gevent.monkey import patch_all
 
 
 def create_server():
+    from gevent.server import StreamServer
+    from gevent.monkey import patch_all
     patch_all()
     gevent_server = StreamServer(('127.0.0.1', 8001), respond)
     print('Starting gevent server on port 8001')
