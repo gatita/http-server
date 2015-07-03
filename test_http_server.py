@@ -32,6 +32,10 @@ def connection(server_process):
     return client
 
 
+# @pytest.fixture
+# def request_builder(body, ctype, )
+
+
 @pytest.fixture
 def okresponse():
     now = formatdate(usegmt=True)
@@ -56,7 +60,19 @@ def errorresponse():
 
 
 def test_response_ok(okresponse):
-    assert response_ok() == okresponse
+    body = 'this is a response'
+    ctype = 'text/plain'
+    response = response_ok(body, ctype)
+    headers, rbody = response.split('\r\n\r\n')
+    assert rbody == body
+    lines = headers.split('\r\n')
+    assert lines[0] == 'HTTP/1.1 200 OK'
+    typefound = False
+    for line in lines:
+        if 'Content-Type: text/plain' in line:
+            typefound = True
+            break
+    assert typefound
 
 
 def test_response_error(errorresponse):
