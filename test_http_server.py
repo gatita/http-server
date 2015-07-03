@@ -14,7 +14,7 @@ def server_process(request):
     process = Process(target=create_server)
     process.daemon = True
     process.start()
-    time.sleep(.01)
+    time.sleep(.02)
 
     def cleanup():
         process.terminate()
