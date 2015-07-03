@@ -4,7 +4,8 @@ import os
 import mimetypes
 
 CRLF = '\r\n'
-ROOT = os.path.join(os.getcwd(), 'webroot')
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.join(HERE, 'webroot')
 
 
 def create_server():
@@ -43,9 +44,10 @@ def respond():
                 # send parsed request to resolve uri
                 try:
                     body, resource_type = resolve_uri(uri)
-                except LookupError as e:
+                except (LookupError, ValueError, IOError) as e:
                     message_out = response_error(e.message)
-                message_out = response_ok(body, resource_type)
+                else:
+                    message_out = response_ok(body, resource_type)
             conn.sendall(message_out)
             conn.close()
         except KeyboardInterrupt:
@@ -69,7 +71,9 @@ def response_error(message):
     codes = {'405': 'Method Not Allowed',
              '505': 'HTTP Version Not Supported',
              '400': 'Bad Request',
-             '404': 'Not Found'
+             '404': 'Not Found',
+             '403': 'Forbidden',
+             '500': 'Internal Server Error'
              }
     response = []
     now = formatdate(usegmt=True)
@@ -88,31 +92,37 @@ def parse_request(request):
     header, body = request.split(CRLF*2, 1)
     header_lines = header.split(CRLF)
     host = False
-    if 'GET' not in header_lines[0]:
+    request_line = header_lines[0].split()
+    if 'GET' != request_line[0]:
         raise NotImplementedError('405')
-    elif 'HTTP/1.1' not in header_lines[0]:
+    elif 'HTTP/1.1' != request_line[2]:
         raise ValueError('505')
     for line in header_lines[1:]:
         if 'Host:' in line:
             host = True
     if not host:
         raise AttributeError('400')
-    request_line = header_lines[0].split()
     return request_line[1]
 
 
 def resolve_uri(uri):
     body = ''
     resource_type = ''
-    if os.path.isdir(ROOT + uri):
+    if '..' in uri:
+        raise ValueError('403')
+    absuri = os.path.join(ROOT, uri.lstrip('/'))
+    if os.path.isdir(absuri):
         body = '<!DOCTYPE html><html><body><ul>'
-        for file_ in os.listdir(ROOT + uri):
+        for file_ in os.listdir(absuri):
             body += '<li>' + file_ + '</li>'
         body += '</ul></body></html>'
         resource_type = 'text/html'
-    elif os.path.isfile(ROOT + uri):
-        with open((ROOT + uri), 'rb') as file_:
-            body = file_.read()
+    elif os.path.isfile(absuri):
+        try:
+            with open((ROOT + uri), 'rb') as file_:
+                body = file_.read()
+        except IOError:
+            raise IOError('500')
         resource_type, encoding = mimetypes.guess_type(uri)
     else:
         raise LookupError('404')
