@@ -1,6 +1,7 @@
 # -*- coding:UTF-8 -*-
 # from __future__ import unicode_literals
-from server import response_error, response_ok, respond, parse_request, resolve_uri
+from server import response_error, response_ok, parse_request, resolve_uri
+from concurrent_server import create_server
 import time
 
 import pytest
@@ -10,7 +11,7 @@ import socket
 @pytest.yield_fixture
 def server_process(scope='session'):
     from multiprocessing import Process
-    process = Process(target=respond)
+    process = Process(target=create_server)
     process.daemon = True
     process.start()
     time.sleep(.01)
