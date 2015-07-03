@@ -8,14 +8,19 @@ import pytest
 import socket
 
 
-@pytest.yield_fixture
-def server_process(scope='session'):
+@pytest.fixture(scope='session')
+def server_process(request):
     from multiprocessing import Process
     process = Process(target=create_server)
     process.daemon = True
     process.start()
     time.sleep(.01)
-    yield process
+
+    def cleanup():
+        process.terminate()
+
+    request.addfinalizer(cleanup)
+    return process
 
 
 @pytest.fixture
