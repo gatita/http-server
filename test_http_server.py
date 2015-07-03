@@ -105,9 +105,9 @@ def get_response(server_process, connection, msg):
     connection.shutdown(socket.SHUT_WR)
     message_in = ''
     while True:
-        part = connection.recv(16)
+        part = connection.recv(1024)
         message_in += part
-        if len(part) < 16:
+        if len(part) < 1024:
             break
     connection.close()
     headers, body = process_response(message_in)
